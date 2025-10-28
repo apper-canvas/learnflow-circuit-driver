@@ -1,106 +1,45 @@
-import { createContext, useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import { useDispatch } from 'react-redux';
-import { setUser, clearUser } from './store/userSlice';
-import Certificate from "@/components/pages/Certificate";
+import React, { createContext, useState, useEffect } from "react";
+import { RouterProvider } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
-import Layout from "@/components/organisms/Layout";
-import CourseCatalog from "@/components/pages/CourseCatalog";
-import CourseDetail from "@/components/pages/CourseDetail";
-import LessonViewer from "@/components/pages/LessonViewer";
-import MyLearning from "@/components/pages/MyLearning";
-import Profile from "@/components/pages/Profile";
-import Login from "@/components/pages/Login";
-import Signup from "@/components/pages/Signup";
-import Callback from "@/components/pages/Callback";
-import ErrorPage from "@/components/pages/ErrorPage";
-import ResetPassword from "@/components/pages/ResetPassword";
-import PromptPassword from "@/components/pages/PromptPassword";
+import "react-toastify/dist/ReactToastify.css";
+import { router } from "./router";
+
 export const AuthContext = createContext(null);
 
-function AppContent() {
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
+function App() {
   const [isInitialized, setIsInitialized] = useState(false);
-  
+
   useEffect(() => {
-    const { ApperClient, ApperUI } = window.ApperSDK;
-    
-    const client = new ApperClient({
-      apperProjectId: import.meta.env.VITE_APPER_PROJECT_ID,
-      apperPublicKey: import.meta.env.VITE_APPER_PUBLIC_KEY
-    });
-    
-    ApperUI.setup(client, {
-      target: '#authentication',
-      clientId: import.meta.env.VITE_APPER_PROJECT_ID,
-      view: 'both',
-      onSuccess: function (user) {
-        setIsInitialized(true);
-        let currentPath = window.location.pathname + window.location.search;
-        let redirectPath = new URLSearchParams(window.location.search).get('redirect');
-        const isAuthPage = currentPath.includes('/login') || currentPath.includes('/signup') || 
-                           currentPath.includes('/callback') || currentPath.includes('/error') || 
-                           currentPath.includes('/prompt-password') || currentPath.includes('/reset-password');
-        
-        if (user) {
-          if (redirectPath) {
-            navigate(redirectPath);
-          } else if (!isAuthPage) {
-            if (!currentPath.includes('/login') && !currentPath.includes('/signup')) {
-              navigate(currentPath);
-            } else {
-              navigate('/courses');
-            }
-          } else {
-            navigate('/courses');
-          }
-          dispatch(setUser(JSON.parse(JSON.stringify(user))));
-        } else {
-          if (!isAuthPage) {
-            navigate(
-              currentPath.includes('/signup')
-                ? `/signup?redirect=${currentPath}`
-                : currentPath.includes('/login')
-                ? `/login?redirect=${currentPath}`
-                : '/login'
-            );
-          } else if (redirectPath) {
-            if (
-              !['error', 'signup', 'login', 'callback', 'prompt-password', 'reset-password'].some((path) => currentPath.includes(path))
-            ) {
-              navigate(`/login?redirect=${redirectPath}`);
-            } else {
-              navigate(currentPath);
-            }
-          } else if (isAuthPage) {
-            navigate(currentPath);
-          } else {
-            navigate('/login');
-          }
-          dispatch(clearUser());
+    const initializeApp = async () => {
+      try {
+        if (window.ApperSDK?.ApperUI) {
+          await window.ApperSDK.ApperUI.initialize();
         }
-      },
-      onError: function(error) {
-        console.error("Authentication failed:", error);
+        setIsInitialized(true);
+      } catch (error) {
+        console.error("App initialization failed:", error);
+        setIsInitialized(true);
       }
-    });
+    };
+
+    initializeApp();
   }, []);
-  
+
   const authMethods = {
     isInitialized,
     logout: async () => {
       try {
         const { ApperUI } = window.ApperSDK;
-        await ApperUI.logout();
-        dispatch(clearUser());
-        navigate('/login');
+        if (ApperUI) {
+          await ApperUI.logout();
+        }
+        window.location.href = '/login';
       } catch (error) {
         console.error("Logout failed:", error);
       }
     }
   };
-  
+
   if (!isInitialized) {
     return (
       <div className="loading flex items-center justify-center p-6 h-screen w-full">
@@ -117,29 +56,15 @@ function AppContent() {
       </div>
     );
   }
-  
+
   return (
     <AuthContext.Provider value={authMethods}>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/callback" element={<Callback />} />
-        <Route path="/error" element={<ErrorPage />} />
-        <Route path="/prompt-password/:appId/:emailAddress/:provider" element={<PromptPassword />} />
-        <Route path="/reset-password/:appId/:fields" element={<ResetPassword />} />
-        <Route path="/" element={<Navigate to="/courses" replace />} />
-        <Route path="/courses" element={<Layout><CourseCatalog /></Layout>} />
-        <Route path="/courses/:courseId" element={<Layout><CourseDetail /></Layout>} />
-        <Route path="/courses/:courseId/lessons/:lessonId" element={<Layout><LessonViewer /></Layout>} />
-<Route path="/my-learning" element={<Layout><MyLearning /></Layout>} />
-        <Route path="/profile" element={<Layout><Profile /></Layout>} />
-        <Route path="/certificates/:courseId" element={<Layout><Certificate /></Layout>} />
-      </Routes>
+      <RouterProvider router={router} />
       <ToastContainer 
         position="top-right"
         autoClose={3000}
         hideProgressBar={false}
-        newestOnTop={false}
+        newestOnTop
         closeOnClick
         rtl={false}
         pauseOnFocusLoss
@@ -149,12 +74,5 @@ function AppContent() {
     </AuthContext.Provider>
   );
 }
-const App = () => {
-  return (
-    <BrowserRouter>
-      <AppContent />
-    </BrowserRouter>
-  );
-};
 
 export default App;
