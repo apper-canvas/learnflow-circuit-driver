@@ -19,7 +19,7 @@
   @apply bg-white shadow-lg rounded-xl;
   min-height: 64px;
   padding: 16px;
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: "Open Sans", system-ui, sans-serif;
 }
 
 .Toastify__toast-body {

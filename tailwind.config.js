@@ -13,8 +13,8 @@ export default {
         surface: "#FFFFFF",
         background: "#F8FAFC"
       },
-      fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"]
+fontFamily: {
+        sans: ["Open Sans", "system-ui", "sans-serif"]
       }
     }
   },
